@@ -2,45 +2,59 @@ import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:signature/signature.dart';
+import 'package:flutter_hooks/flutter_hooks.dart';
+import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 void main() {
-  runApp(const MyApp());
+  runApp(const ProviderScope(
+    child: MyApp(),
+  ));
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends HookConsumerWidget {
   const MyApp({Key? key}) : super(key: key);
 
   // This widget is the root of your application.
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        primarySwatch: Colors.blue,
-      ),
-      home: const MyHomePage(),
-    );
+        theme: ThemeData(
+          colorScheme: ColorScheme.fromSwatch(
+            primarySwatch: Colors.blue,
+          ).copyWith(secondary: Colors.blueAccent),
+        ),
+        home: const MyHomePage());
   }
 }
 
-class MyHomePage extends StatefulWidget {
+class MyHomePage extends HookWidget {
   const MyHomePage({Key? key}) : super(key: key);
 
   @override
-  State<MyHomePage> createState() => _MyHomePageState();
+  Widget build(BuildContext context) {
+    // return ProjectFormPage();
+    return HandWriting();
+  }
 }
 
-class _MyHomePageState extends State<MyHomePage> {
-  Uint8List? exportedImage;
+class HandWriting extends HookConsumerWidget {
+  // const HandWriting({Key? key}) : super(key: key);
 
-  SignatureController controller = SignatureController(
-    penStrokeWidth: 3,
-    penColor: Colors.red,
-    exportBackgroundColor: Colors.yellowAccent,
-  );
+//   @override
+//   State<HandWriting> createState() => _HandWritingState();
+// }
+
+// class _HandWritingState extends State<HandWriting> {
+  Uint8List? exportedImage;
+  final exportedImageState = useState(Uint8List(0));
+
+  final controller = useState(SignatureController(
+      penStrokeWidth: 3,
+      penColor: Colors.black,
+      exportBackgroundColor: Colors.white12));
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
       appBar: AppBar(
         centerTitle: true,
@@ -52,10 +66,10 @@ class _MyHomePageState extends State<MyHomePage> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Signature(
-              controller: controller,
+              controller: controller.value,
               width: 350,
               height: 200,
-              backgroundColor: Colors.lightBlue[100]!,
+              backgroundColor: Colors.grey[300]!,
             ),
             SizedBox(
               height: 20,
@@ -68,9 +82,15 @@ class _MyHomePageState extends State<MyHomePage> {
                     padding: EdgeInsets.all(10),
                     child: ElevatedButton(
                         onPressed: () async {
-                          exportedImage = await controller.toPngBytes();
-                          //API
-                          setState(() {});
+                          var testController = controller.value;
+                          print("controller.value: $testController");
+                          exportedImageState.value =
+                              (await controller.value.toPngBytes()) ??
+                                  Uint8List(0);
+                          // ignore: avoid_print
+                          var test2 = (await controller.value.toPngBytes());
+
+                          print("exportedImageState.value: $test2");
                         },
                         child: const Text(
                           "Save",
@@ -88,7 +108,7 @@ class _MyHomePageState extends State<MyHomePage> {
                     padding: EdgeInsets.all(10),
                     child: ElevatedButton(
                         onPressed: () {
-                          controller.clear();
+                          controller.value.clear();
                         },
                         child: const Text(
                           "Clear",
@@ -107,11 +127,18 @@ class _MyHomePageState extends State<MyHomePage> {
             SizedBox(
               height: 10,
             ),
-            if (exportedImage != null)
+            if (exportedImageState.value != null ||
+                exportedImageState.value != [0])
               Image.memory(
-                exportedImage!,
+                exportedImageState.value,
                 width: 300,
                 height: 250,
+              )
+            else
+              Container(
+                width: 300,
+                height: 250,
+                color: Colors.blue,
               )
           ],
         ),
